@@ -5,7 +5,13 @@ import numpy as np
 import torch
 from lightning import LightningDataModule
 from sklearn.datasets import make_moons
-from torch.utils.data import DataLoader, Dataset, TensorDataset, random_split
+from torch.utils.data import (
+    ConcatDataset,
+    DataLoader,
+    Dataset,
+    TensorDataset,
+    random_split,
+)
 
 
 class MoonsDataModule(LightningDataModule):
@@ -54,16 +60,37 @@ class MoonsDataModule(LightningDataModule):
             data = np.load(self.moons_npz)
             X, y = data["X"], data["y"]
 
-            dataset = TensorDataset(torch.from_numpy(X).float(), torch.from_numpy(y).int())
+            zero_X, one_X = X[y == 0], X[y == 1]
+            zero_y, one_y = y[y == 0], y[y == 1]
 
-            n_samples = len(dataset)
-            lengths = [int(split * n_samples) for split in self.hparams.train_val_test_split]
+            zero_dataset = TensorDataset(
+                torch.from_numpy(zero_X).float(), torch.from_numpy(zero_y).int()
+            )
+            one_dataset = TensorDataset(
+                torch.from_numpy(one_X).float(), torch.from_numpy(one_y).int()
+            )
 
-            self.data_train, self.data_val, self.data_test = random_split(
-                dataset=dataset,
-                lengths=lengths,
+            zero_samples, one_samples = len(zero_dataset), len(one_dataset)
+
+            zero_lengths = [
+                int(split * zero_samples) for split in self.hparams.train_val_test_split
+            ]
+            one_lengths = [int(split * one_samples) for split in self.hparams.train_val_test_split]
+
+            zero_train, zero_val, zero_test = random_split(
+                dataset=zero_dataset,
+                lengths=zero_lengths,
                 generator=torch.Generator().manual_seed(self.hparams.random_state),
             )
+            one_train, one_val, one_test = random_split(
+                dataset=one_dataset,
+                lengths=one_lengths,
+                generator=torch.Generator().manual_seed(self.hparams.random_state),
+            )
+
+            self.data_train = ConcatDataset([zero_train, one_train])
+            self.data_val = ConcatDataset([zero_val, one_val])
+            self.data_test = ConcatDataset([zero_test, one_test])
 
     def train_dataloader(self) -> DataLoader[Any]:
         """Create the train dataloader."""
