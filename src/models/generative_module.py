@@ -77,6 +77,14 @@ class GenerativeLitModule(LightningModule):
         """
         loss, prediction, x, y = self.model_step(batch)
 
+        if isinstance(prediction, tuple):
+            prediction, *z = prediction
+
+        if isinstance(loss, tuple):
+            loss, components = loss
+            for key, value in components.items():
+                self.log(f"train/{key}", value, on_step=False, on_epoch=True, prog_bar=False)
+
         self.train_loss(loss)
         self.train_mse(prediction, x)
 
@@ -92,6 +100,14 @@ class GenerativeLitModule(LightningModule):
         :param batch_idx: index of the batch
         """
         loss, prediction, x, y = self.model_step(batch)
+
+        if isinstance(prediction, tuple):
+            prediction, *z = prediction
+
+        if isinstance(loss, tuple):
+            loss, components = loss
+            for key, value in components.items():
+                self.log(f"val/{key}", value, on_step=False, on_epoch=True, prog_bar=False)
 
         self.val_loss(loss)
         self.val_mse(prediction, x)
@@ -112,6 +128,14 @@ class GenerativeLitModule(LightningModule):
         :param batch_idx: index of the batch
         """
         loss, prediction, x, y = self.model_step(batch)
+
+        if isinstance(prediction, tuple):
+            prediction, *z = prediction
+
+        if isinstance(loss, tuple):
+            loss, components = loss
+            for key, value in components.items():
+                self.log(f"test/{key}", value, on_step=False, on_epoch=True, prog_bar=False)
 
         self.test_loss(loss)
         self.test_mse(prediction, x)
