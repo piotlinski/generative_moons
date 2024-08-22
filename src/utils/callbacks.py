@@ -1,3 +1,4 @@
+from collections import defaultdict
 from typing import Any
 
 import matplotlib.pyplot as plt
@@ -47,11 +48,12 @@ class WatchModel(Callback):
 class VisualizationCallback(Callback):
     """Callback to store samples and outputs for visualization."""
 
-    def __init__(self):
+    def __init__(self, log_every_n_epochs: int):
         super().__init__()
+        self.log_every_n_epochs = log_every_n_epochs
+
         self.ready = True
-        self.batch = {}
-        self.outputs = {}
+        self.outputs = defaultdict(list)
 
     def on_sanity_check_start(self, trainer: Trainer, pl_module: LightningModule):
         self.ready = False
@@ -70,9 +72,8 @@ class VisualizationCallback(Callback):
         stage: str = "train",
     ):
         """Store inputs and outputs for visualization."""
-        if self.batch.get(stage) is None and self.outputs.get(stage) is None:
-            self.batch[stage] = batch
-            self.outputs[stage] = outputs
+        if self.ready and trainer.current_epoch % self.log_every_n_epochs == 0:
+            self.outputs[stage].append(outputs)
 
     def on_train_batch_end(
         self,
@@ -99,8 +100,7 @@ class VisualizationCallback(Callback):
     def on_epoch_end(self, trainer: Trainer, pl_module: LightningModule, stage: str = "train"):
         """Cleanup cached batch and outputs."""
         if self.ready:
-            self.batch[stage] = None
-            self.outputs[stage] = None
+            self.outputs[stage] = []
 
     def on_train_epoch_end(self, trainer: Trainer, pl_module: LightningModule):
         """Cleanup cached train batch and outputs."""
@@ -126,11 +126,15 @@ class LogLatentsHistogram(VisualizationCallback):
 
     def on_epoch_end(self, trainer: Trainer, pl_module: LightningModule, stage: str = "train"):
         """Prepare visualization at epoch end."""
-        if self.ready:
+        if self.ready and trainer.current_epoch % self.log_every_n_epochs == 0:
             logger = get_wandb_logger(trainer=trainer)
             experiment = logger.experiment
 
-            experiment.log(self.parse_latents(self.outputs[stage]["z"], prefix=f"{stage}/"))
+            z = {
+                key: torch.cat([d["z"][key] for d in self.outputs[stage]], dim=0)
+                for key in self.outputs[stage][0]["z"]
+            }
+            experiment.log(self.parse_latents(z, prefix=f"{stage}/"))
 
         super().on_epoch_end(trainer, pl_module, stage)
 
@@ -138,8 +142,8 @@ class LogLatentsHistogram(VisualizationCallback):
 class VisualizeReconstruction(VisualizationCallback):
     """Visualize reconstructed points."""
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self.gt_done = {
             "train": False,
             "val": False,
@@ -155,11 +159,11 @@ class VisualizeReconstruction(VisualizationCallback):
 
     def on_epoch_end(self, trainer: Trainer, pl_module: LightningModule, stage: str = "train"):
         """Prepare reconsutrcions visualization."""
-        if self.ready:
+        if self.ready and trainer.current_epoch % self.log_every_n_epochs == 0:
             logger = get_wandb_logger(trainer=trainer)
-            x = self.outputs[stage]["x"]
-            y = self.outputs[stage]["y"]
-            prediction = self.outputs[stage]["prediction"]
+            x = torch.cat([output["x"] for output in self.outputs[stage]], dim=0)
+            y = torch.cat([output["y"] for output in self.outputs[stage]], dim=0)
+            prediction = torch.cat([output["prediction"] for output in self.outputs[stage]], dim=0)
             experiment = logger.experiment
 
             if not self.gt_done[stage]:
@@ -183,14 +187,9 @@ class VisualizeLatentSpace(VisualizationCallback):
     """Visualize latent space."""
 
     def __init__(
-        self,
-        log_every_n_epochs: int,
-        n_neighbors: int = 15,
-        min_dist: float = 0.1,
-        random_state: int = 42,
+        self, n_neighbors: int = 15, min_dist: float = 0.1, random_state: int = 42, *args, **kwargs
     ):
-        super().__init__()
-        self.log_every_n_epochs = log_every_n_epochs
+        super().__init__(*args, **kwargs)
         self.n_neighbors = n_neighbors
         self.min_dist = min_dist
         self.random_state = random_state
@@ -214,8 +213,8 @@ class VisualizeLatentSpace(VisualizationCallback):
         """Prepare latent space visualization."""
         if self.ready and trainer.current_epoch % self.log_every_n_epochs == 0:
             logger = get_wandb_logger(trainer=trainer)
-            z = self.outputs[stage]["z"]["z"]
-            y = self.outputs[stage]["y"]
+            z = torch.cat([output["z"]["z"] for output in self.outputs[stage]], dim=0)
+            y = torch.cat([output["y"] for output in self.outputs[stage]], dim=0)
             experiment = logger.experiment
 
             experiment.log(

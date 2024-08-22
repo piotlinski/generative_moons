@@ -9,8 +9,12 @@ watch_model:
 log_latents_histogram:
   _target_: src.utils.callbacks.LogLatentsHistogram
 
+  log_every_n_epochs: 10
+
 visualize_reconstruction:
   _target_: src.utils.callbacks.VisualizeReconstruction
+
+  log_every_n_epochs: 10
 
 visualize_latent_space:
   _target_: src.utils.callbacks.VisualizeLatentSpace
