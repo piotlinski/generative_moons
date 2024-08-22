@@ -1,0 +1,21 @@
+defaults:
+  - default
+
+watch_model:
+  _target_: src.utils.callbacks.WatchModel
+  log: all
+  log_freq: 10
+
+log_latents_histogram:
+  _target_: src.utils.callbacks.LogLatentsHistogram
+
+visualize_reconstruction:
+  _target_: src.utils.callbacks.VisualizeReconstruction
+
+visualize_latent_space:
+  _target_: src.utils.callbacks.VisualizeLatentSpace
+
+  log_every_n_epochs: 50
+  n_neighbors: 15
+  min_dist: 0.1
+  random_state: null

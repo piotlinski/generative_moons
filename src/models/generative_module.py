@@ -68,7 +68,7 @@ class GenerativeLitModule(LightningModule):
 
     def training_step(
         self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int
-    ) -> torch.Tensor:
+    ) -> dict[str, torch.Tensor | dict[str, torch.Tensor]]:
         """LightningModule training step.
 
         :param batch: input data
@@ -77,8 +77,9 @@ class GenerativeLitModule(LightningModule):
         """
         loss, prediction, x, y = self.model_step(batch)
 
+        z = {}
         if isinstance(prediction, tuple):
-            prediction, *z = prediction
+            prediction, z = prediction
 
         if isinstance(loss, tuple):
             loss, components = loss
@@ -91,9 +92,17 @@ class GenerativeLitModule(LightningModule):
         self.log("train/loss", self.train_loss, on_step=True, on_epoch=True, prog_bar=True)
         self.log("train/mse", self.train_mse, on_step=False, on_epoch=True, prog_bar=False)
 
-        return loss
+        return {
+            "loss": loss,
+            "z": z,
+            "x": x,
+            "y": y,
+            "prediction": prediction,
+        }
 
-    def validation_step(self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int) -> None:
+    def validation_step(
+        self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int
+    ) -> dict[str, torch.Tensor | dict[str, torch.Tensor]]:
         """LightningModule validation step.
 
         :param batch: input data
@@ -101,8 +110,9 @@ class GenerativeLitModule(LightningModule):
         """
         loss, prediction, x, y = self.model_step(batch)
 
+        z = {}
         if isinstance(prediction, tuple):
-            prediction, *z = prediction
+            prediction, z = prediction
 
         if isinstance(loss, tuple):
             loss, components = loss
@@ -114,6 +124,14 @@ class GenerativeLitModule(LightningModule):
 
         self.log("val/loss", self.val_loss, on_step=False, on_epoch=True, prog_bar=False)
         self.log("val/mse", self.val_mse, on_step=False, on_epoch=True, prog_bar=False)
+
+        return {
+            "loss": loss,
+            "z": z,
+            "x": x,
+            "y": y,
+            "prediction": prediction,
+        }
 
     def on_validation_epoch_end(self):
         """Update the best validation metric."""
@@ -130,7 +148,7 @@ class GenerativeLitModule(LightningModule):
         loss, prediction, x, y = self.model_step(batch)
 
         if isinstance(prediction, tuple):
-            prediction, *z = prediction
+            prediction, z = prediction
 
         if isinstance(loss, tuple):
             loss, components = loss

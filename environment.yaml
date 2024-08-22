@@ -18,6 +18,8 @@ dependencies:
   - scikit-learn=1.*
   - matplotlib
   - umap-learn
+  - plotly
+  - pandas
 
   - pip>=23
   - pip:

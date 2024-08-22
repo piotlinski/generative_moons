@@ -91,13 +91,13 @@ class VAE(nn.Module):
         z = mean + eps * std
         return z
 
-    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
         """Perform a forward pass through the VAE."""
         mean, logvar = self.encoder(x)
         z = self.reparameterize(mean, logvar)
         y = self.decoder(z)
 
-        return y, mean, logvar
+        return y, {"mean": mean, "logvar": logvar, "z": z}
 
 
 class VAELoss(nn.Module):
@@ -117,17 +117,17 @@ class VAELoss(nn.Module):
         self.reduction = reduction
 
     def forward(
-        self, predictions: tuple[torch.Tensor, torch.Tensor, torch.Tensor], x: torch.Tensor
+        self, predictions: tuple[torch.Tensor, dict[str, torch.Tensor]], x: torch.Tensor
     ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
         """Calculate the negative ELBO loss.
 
         .. note: we use a closed-form KL divergence for Gaussian distributions
             KL(q || N(0, I)) = 0.5 * sum(sigma^2 + mu^2 - log(sigma^2) - 1)
         """
-        y, mean, logvar = predictions
+        y, zs = predictions
 
         recon_error = F.mse_loss(y, x, reduction="sum")
-        kl_div = -0.5 * torch.sum(1 + logvar - mean.pow(2) - logvar.exp())
+        kl_div = -0.5 * torch.sum(1 + zs["logvar"] - zs["mean"].pow(2) - zs["logvar"].exp())
 
         loss = recon_error + self.beta * kl_div
 
