@@ -60,11 +60,11 @@ class GenerativeLitModule(LightningModule):
         :return: loss value
         """
         x, y = batch
-        prediction = self(x)
+        x_hat = self(x)
 
-        loss = self.loss_fn(prediction, x)
+        loss = self.loss_fn(x_hat, x)
 
-        return loss, prediction, x, y
+        return loss, x_hat, x, y
 
     def training_step(
         self, batch: tuple[torch.Tensor, torch.Tensor], batch_idx: int
@@ -75,11 +75,11 @@ class GenerativeLitModule(LightningModule):
         :param batch_idx: index of the batch
         :return: loss value
         """
-        loss, prediction, x, y = self.model_step(batch)
+        loss, x_hat, x, y = self.model_step(batch)
 
         z = {}
-        if isinstance(prediction, tuple):
-            prediction, z = prediction
+        if isinstance(x_hat, tuple):
+            x_hat, z = x_hat
 
         if isinstance(loss, tuple):
             loss, components = loss
@@ -87,7 +87,7 @@ class GenerativeLitModule(LightningModule):
                 self.log(f"train/{key}", value, on_step=False, on_epoch=True, prog_bar=False)
 
         self.train_loss(loss)
-        self.train_mse(prediction, x)
+        self.train_mse(x_hat, x)
 
         self.log("train/loss", self.train_loss, on_step=True, on_epoch=True, prog_bar=True)
         self.log("train/mse", self.train_mse, on_step=False, on_epoch=True, prog_bar=False)
@@ -97,7 +97,7 @@ class GenerativeLitModule(LightningModule):
             "z": z,
             "x": x,
             "y": y,
-            "prediction": prediction,
+            "x_hat": x_hat,
         }
 
     def validation_step(
@@ -108,11 +108,11 @@ class GenerativeLitModule(LightningModule):
         :param batch: input data
         :param batch_idx: index of the batch
         """
-        loss, prediction, x, y = self.model_step(batch)
+        loss, x_hat, x, y = self.model_step(batch)
 
         z = {}
-        if isinstance(prediction, tuple):
-            prediction, z = prediction
+        if isinstance(x_hat, tuple):
+            x_hat, z = x_hat
 
         if isinstance(loss, tuple):
             loss, components = loss
@@ -120,7 +120,7 @@ class GenerativeLitModule(LightningModule):
                 self.log(f"val/{key}", value, on_step=False, on_epoch=True, prog_bar=False)
 
         self.val_loss(loss)
-        self.val_mse(prediction, x)
+        self.val_mse(x_hat, x)
 
         self.log("val/loss", self.val_loss, on_step=False, on_epoch=True, prog_bar=False)
         self.log("val/mse", self.val_mse, on_step=False, on_epoch=True, prog_bar=False)
@@ -130,7 +130,7 @@ class GenerativeLitModule(LightningModule):
             "z": z,
             "x": x,
             "y": y,
-            "prediction": prediction,
+            "x_hat": x_hat,
         }
 
     def on_validation_epoch_end(self):
@@ -145,10 +145,10 @@ class GenerativeLitModule(LightningModule):
         :param batch: input data
         :param batch_idx: index of the batch
         """
-        loss, prediction, x, y = self.model_step(batch)
+        loss, x_hat, x, y = self.model_step(batch)
 
-        if isinstance(prediction, tuple):
-            prediction, z = prediction
+        if isinstance(x_hat, tuple):
+            x_hat, z = x_hat
 
         if isinstance(loss, tuple):
             loss, components = loss
@@ -156,7 +156,7 @@ class GenerativeLitModule(LightningModule):
                 self.log(f"test/{key}", value, on_step=False, on_epoch=True, prog_bar=False)
 
         self.test_loss(loss)
-        self.test_mse(prediction, x)
+        self.test_mse(x_hat, x)
 
         self.log("test/loss", self.test_loss, on_step=False, on_epoch=True, prog_bar=True)
         self.log("test/mse", self.test_mse, on_step=False, on_epoch=True, prog_bar=False)

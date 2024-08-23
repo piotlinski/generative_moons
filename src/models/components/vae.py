@@ -97,9 +97,9 @@ class VAE(nn.Module):
         """Perform a forward pass through the VAE."""
         mean, logvar = self.encoder(x)
         z = self.reparameterize(mean, logvar)
-        y = self.decoder(z)
+        x_hat = self.decoder(z)
 
-        return y, {"mean": mean, "logvar": logvar, "z": z}
+        return x_hat, {"mean": mean, "logvar": logvar, "z": z}
 
 
 class VAELoss(nn.Module):
@@ -126,9 +126,9 @@ class VAELoss(nn.Module):
         .. note: we use a closed-form KL divergence for Gaussian distributions
             KL(q || N(0, I)) = 0.5 * sum(sigma^2 + mu^2 - log(sigma^2) - 1)
         """
-        y, zs = predictions
+        x_hat, zs = predictions
 
-        recon_error = F.mse_loss(y, x, reduction="sum")
+        recon_error = F.mse_loss(x_hat, x, reduction="sum")
         kl_div = -0.5 * torch.sum(1 + zs["logvar"] - zs["mean"].pow(2) - zs["logvar"].exp())
 
         loss = recon_error + self.beta * kl_div

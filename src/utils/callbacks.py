@@ -163,7 +163,7 @@ class VisualizeReconstruction(VisualizationCallback):
             logger = get_wandb_logger(trainer=trainer)
             x = torch.cat([output["x"] for output in self.outputs[stage]], dim=0)
             y = torch.cat([output["y"] for output in self.outputs[stage]], dim=0)
-            prediction = torch.cat([output["prediction"] for output in self.outputs[stage]], dim=0)
+            x_hat = torch.cat([output["x_hat"] for output in self.outputs[stage]], dim=0)
             experiment = logger.experiment
 
             if not self.gt_done[stage]:
@@ -175,7 +175,7 @@ class VisualizeReconstruction(VisualizationCallback):
             experiment.log(
                 {
                     f"{stage}/reconstructed_points": self.scatterplot(
-                        prediction, y, prefix=f"Reconstructed {stage}"
+                        x_hat, y, prefix=f"Reconstructed {stage}"
                     )
                 }
             )
