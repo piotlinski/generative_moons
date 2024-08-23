@@ -71,7 +71,7 @@ class Decoder(nn.Module):
 class VAE(nn.Module):
     """Variational Autoencoder."""
 
-    def __init__(self, encoder: Encoder, decoder: Decoder):
+    def __init__(self, encoder: Encoder, decoder: Decoder, eps_w: float = 1.0):
         """
         :param encoder: encoder network
         :param decoder: decoder network
@@ -81,13 +81,15 @@ class VAE(nn.Module):
         self.encoder = encoder
         self.decoder = decoder
 
+        self.eps_w = eps_w
+
     def reparameterize(self, mean: torch.Tensor, logvar: torch.Tensor) -> torch.Tensor:
         """Reparametrization trick to sample from the latent space.
 
         .. note: we use the log-variance instead of the variance for numerical stability.
         """
         std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
+        eps = self.eps_w * torch.randn_like(std)
         z = mean + eps * std
         return z
 
