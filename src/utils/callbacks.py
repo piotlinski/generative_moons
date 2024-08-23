@@ -195,14 +195,18 @@ class VisualizeLatentSpace(VisualizationCallback):
         self.random_state = random_state
 
     @torch.no_grad()
-    def latent_scatterplot(self, z: torch.Tensor, y: torch.Tensor, prefix: str) -> wandb.Image:
+    def latent_scatterplot(
+        self, z: torch.Tensor, y: torch.Tensor, train_z: torch.Tensor, prefix: str
+    ) -> wandb.Image:
         """Create scatterplot for visualization."""
         z = z.cpu().numpy()
         y = y.cpu().numpy()
+        train_z = train_z.cpu().numpy()
         fig = visualize_latents(
             z,
             y,
             title=f"{prefix} latent space",
+            train_z=train_z,
             n_neighbors=self.n_neighbors,
             min_dist=self.min_dist,
             random_state=self.random_state,
@@ -215,10 +219,15 @@ class VisualizeLatentSpace(VisualizationCallback):
             logger = get_wandb_logger(trainer=trainer)
             z = torch.cat([output["z"]["z"] for output in self.outputs[stage]], dim=0)
             y = torch.cat([output["y"] for output in self.outputs[stage]], dim=0)
+            train_z = torch.cat([output["z"]["z"] for output in self.outputs["train"]], dim=0)
             experiment = logger.experiment
 
             experiment.log(
-                {f"{stage}/latent_space": self.latent_scatterplot(z, y, prefix=f"{stage}")}
+                {
+                    f"{stage}/latent_space": self.latent_scatterplot(
+                        z, y, train_z, prefix=f"{stage}"
+                    )
+                }
             )
 
         super().on_epoch_end(trainer, pl_module, stage)

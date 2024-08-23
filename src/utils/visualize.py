@@ -25,6 +25,7 @@ def visualize_latents(
     z: np.ndarray,
     y: np.ndarray,
     title: str,
+    train_z: np.ndarray | None = None,
     n_neighbors: int = 15,
     min_dist: float = 0.1,
     random_state: int = 42,
@@ -34,9 +35,16 @@ def visualize_latents(
     :param z: latent space points
     :param y: labels
     :param title: plot title
+    :param train_z: training latent space points (used to fit UMAP)
+    :param n_neighbors: number of neighbors
+    :param min_dist: minimum distance
+    :param random_state: random state
     :return: plotly figure
     """
+    if train_z is None:
+        train_z = z
     reducer = UMAP(n_neighbors=n_neighbors, min_dist=min_dist, random_state=random_state)
-    embedding = reducer.fit_transform(z)
+    reducer.fit(train_z)
+    embedding = reducer.transform(z)
 
     return visualize_data(embedding, y, title)
