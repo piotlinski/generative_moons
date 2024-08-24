@@ -1,7 +1,6 @@
-from typing import Any
-
 import torch
 from lightning import LightningModule
+from lightning.pytorch.utilities import types
 from torchmetrics import MeanMetric, MeanSquaredError, MinMetric
 
 
@@ -39,13 +38,14 @@ class GenerativeLitModule(LightningModule):
 
         self.val_mse_best = MinMetric()
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         """Perform a forward pass through the model.
 
         :param x: input tensor
+        :param y: conditional tensor
         :return: output of the model
         """
-        return self.model(x)
+        return self.model(x=x, y=y.unsqueeze(-1))
 
     def on_train_start(self):
         """Lightning hook that is called when training begins."""
@@ -53,14 +53,14 @@ class GenerativeLitModule(LightningModule):
         self.val_mse.reset()
         self.val_mse_best.reset()
 
-    def model_step(self, batch: tuple[torch.Tensor, torch.Tensor]) -> torch.Tensor:
+    def model_step(self, batch: tuple[torch.Tensor, torch.Tensor]) -> tuple[torch.Tensor, ...]:
         """Perform a single model step on a batch of data.
 
         :param batch: input data
         :return: loss value
         """
         x, y = batch
-        x_hat = self(x)
+        x_hat = self(x, y)
 
         loss = self.loss_fn(x_hat, x)
 
@@ -161,7 +161,7 @@ class GenerativeLitModule(LightningModule):
         self.log("test/loss", self.test_loss, on_step=False, on_epoch=True, prog_bar=True)
         self.log("test/mse", self.test_mse, on_step=False, on_epoch=True, prog_bar=False)
 
-    def configure_optimizers(self) -> dict[str, Any]:
+    def configure_optimizers(self) -> types.OptimizerLRScheduler:
         """Setup optimizer and LR scheduler."""
         optimizer = self.hparams.optimizer(params=self.trainer.model.parameters())
         if self.hparams.scheduler is not None:

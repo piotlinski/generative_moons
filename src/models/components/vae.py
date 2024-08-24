@@ -93,8 +93,13 @@ class VAE(nn.Module):
         z = mean + eps * std
         return z
 
-    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
-        """Perform a forward pass through the VAE."""
+    def forward(
+        self, x: torch.Tensor, y: torch.Tensor
+    ) -> tuple[torch.Tensor, dict[str, torch.Tensor]]:
+        """Perform a forward pass through the VAE.
+
+        .. note: we ignore the conditional tensor `y` in the base VAE.
+        """
         mean, logvar = self.encoder(x)
         z = self.reparameterize(mean, logvar)
         x_hat = self.decoder(z)

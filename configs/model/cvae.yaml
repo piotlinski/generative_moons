@@ -1,0 +1,23 @@
+defaults:
+  - default
+  - vae
+  - _self_
+
+model:
+  _target_: src.models.components.cvae.CVAE
+
+  encoder:
+    _target_: src.models.components.vae.Encoder
+
+    input_dim: 3
+    hidden_dims: 4
+    latent_dim: 8
+
+  decoder:
+    _target_: src.models.components.vae.Decoder
+
+    input_dim: 9
+    hidden_dims: 4
+    output_dim: 2
+
+  eps_w: 0.1
