@@ -20,3 +20,12 @@ logger:
   wandb:
     tags: ${tags}
     group: "vae"
+
+model: # according to basic hyperparameter search
+  model:
+    encoder:
+      hidden_dims: 8
+      latent_dim: 128
+
+    decoder:
+      hidden_dims: 128
