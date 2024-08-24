@@ -14,9 +14,9 @@ model:
   decoder:
     _target_: src.models.components.vae.Decoder
 
-    input_dim: 8
+    input_dim: ${model.model.encoder.latent_dim}
     hidden_dims: 4
-    output_dim: 2
+    output_dim: ${model.model.encoder.input_dim}
 
   eps_w: 0.1
 
