@@ -29,6 +29,7 @@ def visualize_latents(
     n_neighbors: int = 15,
     min_dist: float = 0.1,
     random_state: int = 42,
+    return_reducer: bool = False,
 ) -> go.Figure:
     """Visualize latent space using UMAP.
 
@@ -39,7 +40,8 @@ def visualize_latents(
     :param n_neighbors: number of neighbors
     :param min_dist: minimum distance
     :param random_state: random state
-    :return: plotly figure
+    :param return_reducer: return UMAP reducer
+    :return: plotly figure (and UMAP reducer if return_reducer is True)
     """
     if train_z is None:
         train_z = z
@@ -47,4 +49,9 @@ def visualize_latents(
     reducer.fit(train_z)
     embedding = reducer.transform(z)
 
-    return visualize_data(embedding, y, title)
+    visualization = visualize_data(embedding, y, title)
+
+    if return_reducer:
+        return visualization, reducer
+
+    return visualization
